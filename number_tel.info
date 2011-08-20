@@ -1,0 +1,7 @@
+name = Telephone number Formater
+description = Define simple telephone formater.
+package = Alemande
+version = VERSION
+core = 7.x
+dependencies[] = field
+

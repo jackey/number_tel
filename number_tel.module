@@ -1,0 +1,113 @@
+<?php 
+/**
+ * Implementation of hook_theme().
+ */
+function number_tel_theme() {
+	return array(
+	'number_tel_value' => array(
+	  'variables' => array('value' => ''),
+	  'template' => 'number-tel-value',
+	));
+}
+
+/**
+ * Preprocess number tel value.
+ */
+function number_tel_preprocess_number_tel_value(&$vars) {
+	$vars['mask'] = substr($vars['value'], 0, 1).' ' . $vars['settings']['mask'];
+	$vars['attr'] = array('class' => array($vars['instance']['field_name'] . '-' . $vars['instance']['id'], 'telphone-number-value'));
+	drupal_add_js(drupal_get_path('module' ,'number_tel').'/number_tel.js');
+	// Do something for preprocess.
+}
+
+/**
+ * Implementation of hook_field_formatter_info().
+ */
+function number_tel_field_formatter_info() {
+	return array(
+	  'number_tel' => array(
+	    'label' => t('Telephone Number'),
+	    'field types' => array('number_integer'),
+	    'settings' => array(
+	      'formatter' => '',
+	      'mask' => '',
+	    ),
+	  ),
+	);
+}
+
+/**
+ * Implementation of hook_field_formatter_settins_form().
+ */
+function number_tel_field_formatter_settings_form($field, $instance, $view_mode, $form, &$form_state) {
+	return array(
+	  'formatter' => array(
+	    '#type' => 'select',
+	    '#title' => t('Telephone number output format'),
+	    '#options' => number_tel_format_options(),
+	    '#default_value' => $instance['display'][$view_mode]['settings']['formatter'] ? $instance['display'][$view_mode]['settings']['formatter'] : 0,
+	  ),
+	  'mask' => array(
+	    '#type' => 'textfield',
+	    '#title' => t('The mask of telphone number'),
+	    '#default_value' => $instance['display'][$view_mode]['settings']['mask'] ? $instance['display'][$view_mode]['settings']['mask'] : 'XXX-XXX -XX',
+		),
+	);
+}
+
+
+/**
+ * Implementation of hook_field_formatter_settings_summary().
+ */
+function number_tel_field_formatter_settings_summary($field, $instance, $view_mode) {
+	$option = $instance['display'][$view_mode]['settings']['formatter'];
+	if (!$option) $option = 0;
+	return t('Telephone number formatter for almande with format '. number_tel_format_options($option));
+}
+
+/**
+* Implements hook_field_formatter_view().
+*/
+function number_tel_field_formatter_view($entity_type, $entity, $field, $instance, $langcode, $items, $display) {
+	$element = array();
+	$settings = $display['settings'];
+
+	switch ($display['type']) {
+		case 'number_tel':
+			foreach ($items as $delta => $item) {
+				$output = telephone_formatter($item['value'], $settings['formatter']);
+				if (isset($settings['prefix_suffix'])) {
+          $prefixes = isset($instance['settings']['prefix']) ? array_map('field_filter_xss', explode('|', $instance['settings']['prefix'])) : array('');
+          $suffixes = isset($instance['settings']['suffix']) ? array_map('field_filter_xss', explode('|', $instance['settings']['suffix'])) : array('');
+          $prefix = (count($prefixes) > 1) ? format_plural($item['value'], $prefixes[0], $prefixes[1]) : $prefixes[0];
+          $suffix = (count($suffixes) > 1) ? format_plural($item['value'], $suffixes[0], $suffixes[1]) : $suffixes[0];
+          $output = $prefix . $output . $suffix;
+				}
+				$element[$delta] = array('#markup' => theme('number_tel_value', array('value' => $output, 'settings' => $settings, 'instance' => $instance)));
+			}
+			break;
+	}
+
+	return $element;
+}
+
+/**
+ * Telephone number output format.
+ */
+function number_tel_format_options($key = -1) {
+	$options = array(
+		  '0' => t('Origin value'),
+		  '1' => '152 211 1753',
+		  '2' => '152,211,1753',
+	);
+	if ($key == -1) return $options;
+	
+	return $options[$key];
+}
+
+/**
+ * Telephone formatter
+ */
+function telephone_formatter($value, $format) {
+	return $value;
+}
